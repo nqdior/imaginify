@@ -114,7 +114,7 @@ class IMG2IMG(commands.Cog):
             await interaction.response.defer()
 
             original_message = interaction.message
-            custom_id = int(interaction.data["custom_id"]) - 1
+            custom_id = int(interaction.data["custom_id"])
 
             attachment_url = original_message.attachments[custom_id].url
             response = requests.get(attachment_url)
