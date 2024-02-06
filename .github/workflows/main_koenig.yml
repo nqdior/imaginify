@@ -85,7 +85,7 @@ jobs:
           
       - name: 'Set Startup Command'
         run: |
-          az webapp config set --resource-group pandora --name Koenig --startup-command "python -m pip install -r requirements.txt && python ./main.py"
+          az webapp config set --resource-group pandora --name Koenig --generic-configurations "{\"startupCommand\": \"python -m pip install -r requirements.txt && python ./main.py\"}"
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
           
