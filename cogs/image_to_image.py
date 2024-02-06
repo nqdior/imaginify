@@ -4,7 +4,7 @@ import os, io, base64
 from discord.ext import commands
 from discord.commands import slash_command, Option
 from dotenv import load_dotenv
-from .common.options import model_options, sampler_options, aspect_ratio_options, style_preset_options, clip_guidance_preset_options
+from .common.options import model_options, sampler_options, style_preset_options, clip_guidance_preset_options
 from .common.messages import *
 
 load_dotenv()
@@ -13,43 +13,55 @@ API_KEY = os.getenv("STABILITY_API_KEY")
 if not API_KEY:
     raise EnvironmentError("Missing Stability API key.")
 
-class IMAGINE(commands.Cog):
+class IMG2IMG(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @slash_command(name="imagine", description=IMAGINE_DESCRIPTION)
-    async def imagine(self, ctx,
+    @slash_command(name="img2img", description=IMAGINE_DESCRIPTION)
+    async def img2img(self, ctx,
+                      #オプションにファイル添付を追加
+                      attachments: Option(discord.Attachment, ATTACHMENT_OPTION_DESC, required=True),
                       prompt: Option(str, PROMPT_OPTION_DESC, required=True),
                       negative_prompt: Option(str, NEGATIVE_PROMPT_OPTION_DESC, required=False, default=""),
+                      image_strength: Option(float, IMAGE_STRENGTH_OPTION_DESC, required=False, min_value=0.0, max_value=1.0),
                       cfg_scale: Option(float, CFG_SCALE_OPTION_DESC, required=False, min_value=0.0, max_value=35.0),
                       clip_guidance_preset: Option(str, CLIP_GUIDANCE_PRESET_OPTION_DESC, choices=list(clip_guidance_preset_options.keys()), required=False, default="NONE"),
-                      aspect: Option(str, ASPECT_OPTION_DESC, choices=list(aspect_ratio_options.keys()), required=False, default="square 1:1"),
                       style: Option(str, STYLE_OPTION_DESC, choices=list(style_preset_options.keys()), required=False, default="None"),
                       sampler: Option(str, SAMPLER_OPTION_DESC, choices=list(sampler_options.keys()), required=False),
                       seed: Option(int, SEED_OPTION_DESC, required=False, min_value=0, max_value=4294967295),
-                      model: Option(str, MODEL_OPTION_DESC, choices=list(model_options.keys()), required=False, default="Stable Diffusion XL 1.0")
+                      # model: Option(str, MODEL_OPTION_DESC, choices=list(model_options.keys()), required=False, default="Stable Diffusion XL 1.0")
                       ):
                    
         await ctx.defer()
 
-        width, height = aspect_ratio_options[aspect]
-        json_data = {
-            "text_prompts": [{"text": prompt, "weight": 1}] + ([{"text": negative_prompt, "weight": -1}] if negative_prompt else []),
-            "height": height,
-            "width": width,
-            "samples": 4,
-            "steps": 50,
-            **({"cfg_scale": cfg_scale} if cfg_scale else {}),
-            **({"clip_guidance_preset": clip_guidance_preset}),
-            **({"sampler": sampler} if sampler else {}),
-            **({"style_preset": style_preset_options[style]} if style != "None" else {}),
-            **({"seed": seed} if seed else {}),
-        }
+        response = requests.get(attachments.url)
+        image_data = response.content
 
-        response = requests.post(f"{API_HOST}/v1/generation/{model_options[model]}/text-to-image", headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        }, json=json_data)
+        model = "Stable Diffusion 1.6"
+        response = requests.post(f"{API_HOST}/v1/generation/{model_options[model]}/image-to-image", 
+            headers={
+                "Accept": "application/json",
+                "Authorization": f"Bearer {API_KEY}",
+            },
+            files={
+                "init_image": image_data,
+            },
+            data={
+                "text_prompts[0][text]": prompt,
+                "text_prompts[0][weight]": 1,
+                **({"text_prompts[1][text]": negative_prompt} if negative_prompt else {}),
+                **({"text_prompts[1][weight]": -1 } if negative_prompt else {}),
+                "init_image_mode": "IMAGE_STRENGTH",
+                **({"image_strength": image_strength} if image_strength else {}),
+                "samples": 3,
+                "steps": 50,
+                **({"cfg_scale": cfg_scale} if cfg_scale else {}),
+                **({"clip_guidance_preset": clip_guidance_preset}),
+                **({"sampler": sampler} if sampler else {}),
+                **({"style_preset": style_preset_options[style]} if style != "None" else {}),
+                **({"seed": seed} if seed else {}),
+            }
+        )
 
         if response.status_code != 200:
             embed=discord.Embed(
@@ -60,8 +72,9 @@ class IMAGINE(commands.Cog):
             await ctx.respond(embed=embed)
             return
         
-        files = []
-        seeds = ""
+        file = discord.File(io.BytesIO(image_data), filename=f"image_orig.png")
+        files = [file]
+        seeds = f"  - image1: `original image`\n"
         nsfw_content_count = 0
         view = discord.ui.View()
         for i, image in enumerate(response.json().get("artifacts", [])):
@@ -70,19 +83,18 @@ class IMAGINE(commands.Cog):
                 nsfw_content_count += 1
                 continue
 
-            files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i+1}.png"))
-            seeds += f"  - image{i+1}: `{image['seed']}`\n"
+            files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i+2}.png"))
+            seeds += f"  - image{i+2}: `{image['seed']}`\n"
 
-            button = discord.ui.Button(label=f"upscale {i+1}", custom_id=f"{i+1}")
+            button = discord.ui.Button(label=f"upscale {i+2}", custom_id=f"{i+2}")
             view.add_item(button)
 
         embed = discord.Embed(
                 description=
-                    f"**{ctx.author.mention}'s Imagine**\n\n" +
+                    f"**{ctx.author.mention}'s Image to Image**\n\n" +
                     f"- model: `{model}`\n" +
                     f"- prompt: `{prompt}`\n" +
                     (f"- negative: `{negative_prompt}`\n" if negative_prompt else "") +
-                    f"- aspect: `{aspect}({width}:{height})`\n" +
                     (f"- cfg_scale: `{cfg_scale}`\n" if cfg_scale else "") +
                     (f"- clip_guidance_preset: `{clip_guidance_preset}`\n" if clip_guidance_preset != "NONE" else "") +
                     (f"- sampler: `{sampler}`\n" if sampler else "") +
@@ -133,7 +145,7 @@ class IMAGINE(commands.Cog):
 
             files = []
             for i, image in enumerate(response.json().get("artifacts", [])):
-                files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i+1}.png"))
+                files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i}.png"))
 
             embed = discord.Embed(
                 description=
@@ -150,4 +162,4 @@ class IMAGINE(commands.Cog):
                 item.callback = button_callback
 
 def setup(bot):
-    bot.add_cog(IMAGINE(bot))
+    bot.add_cog(IMG2IMG(bot))
