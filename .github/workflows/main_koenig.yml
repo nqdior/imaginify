@@ -68,11 +68,24 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_70B3E15E2DC940A285461E189C69D030 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_76946A94E8024C5185E38AE488C49AC9 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_7092F12683AF45148A891D91C9BA57E9 }}
-
+          
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
           app-name: 'Koenig'
           slot-name: 'Production'
+          
+      - name: 'Generate .env file'
+        run: |
+          echo "APP_ENV=production" >> .env
+          echo "DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}" >> .env
+          echo "STABILITY_API_KEY=${{ secrets.STABILITY_API_KEY }}" >> .env
+          echo "GUILD_ID=${{ secrets.GUILD_ID }}" >> .env
+          
+      - name: 'Set Startup Command'
+        run: |
+          az webapp config set --resource-group pandora --name Koenig --startup-command "python -m pip install -r requirements.txt && python ./main.py"
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
           
