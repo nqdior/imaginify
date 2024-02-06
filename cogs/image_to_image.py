@@ -23,6 +23,7 @@ class IMG2IMG(commands.Cog):
                       attachments: Option(discord.Attachment, ATTACHMENT_OPTION_DESC, required=True),
                       prompt: Option(str, PROMPT_OPTION_DESC, required=True),
                       negative_prompt: Option(str, NEGATIVE_PROMPT_OPTION_DESC, required=False, default=""),
+                      image_strength: Option(float, IMAGE_STRENGTH_OPTION_DESC, required=False, min_value=0.0, max_value=1.0),
                       cfg_scale: Option(float, CFG_SCALE_OPTION_DESC, required=False, min_value=0.0, max_value=35.0),
                       clip_guidance_preset: Option(str, CLIP_GUIDANCE_PRESET_OPTION_DESC, choices=list(clip_guidance_preset_options.keys()), required=False, default="NONE"),
                       style: Option(str, STYLE_OPTION_DESC, choices=list(style_preset_options.keys()), required=False, default="None"),
@@ -46,12 +47,12 @@ class IMG2IMG(commands.Cog):
                 "init_image": image_data,
             },
             data={
-                "image_strength": 0.35,
-                "init_image_mode": "IMAGE_STRENGTH",
                 "text_prompts[0][text]": prompt,
                 "text_prompts[0][weight]": 1,
                 **({"text_prompts[1][text]": negative_prompt} if negative_prompt else {}),
                 **({"text_prompts[1][weight]": -1 } if negative_prompt else {}),
+                "init_image_mode": "IMAGE_STRENGTH",
+                **({"image_strength": image_strength} if image_strength else {}),
                 "samples": 3,
                 "steps": 50,
                 **({"cfg_scale": cfg_scale} if cfg_scale else {}),
@@ -73,7 +74,7 @@ class IMG2IMG(commands.Cog):
         
         file = discord.File(io.BytesIO(image_data), filename=f"image_orig.png")
         files = [file]
-        seeds = ""
+        seeds = f"  - image1: `original image`\n"
         nsfw_content_count = 0
         view = discord.ui.View()
         for i, image in enumerate(response.json().get("artifacts", [])):
@@ -82,10 +83,10 @@ class IMG2IMG(commands.Cog):
                 nsfw_content_count += 1
                 continue
 
-            files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i+1}.png"))
-            seeds += f"  - image{i+1}: `{image['seed']}`\n"
+            files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i+2}.png"))
+            seeds += f"  - image{i+2}: `{image['seed']}`\n"
 
-            button = discord.ui.Button(label=f"upscale {i+1}", custom_id=f"{i+1}")
+            button = discord.ui.Button(label=f"upscale {i+2}", custom_id=f"{i+2}")
             view.add_item(button)
 
         embed = discord.Embed(
@@ -114,8 +115,9 @@ class IMG2IMG(commands.Cog):
             await interaction.response.defer()
 
             original_message = interaction.message
-            custom_id = int(interaction.data["custom_id"])
+            custom_id = int(interaction.data["custom_id"]) - 1
 
+            # BUG: NSFW画像が含まれている場合、indexが正しく指定できずエラーが発生する
             attachment_url = original_message.attachments[custom_id].url
             response = requests.get(attachment_url)
 

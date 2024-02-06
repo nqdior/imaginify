@@ -3,6 +3,7 @@ IMAGINE_DESCRIPTION = "Stable Diffusionを使用して画像を生成します�
 ATTACHMENT_OPTION_DESC = "画像生成に使用する画像を添付してください。"
 PROMPT_OPTION_DESC = "画像生成に使用するプロンプトを入力してください。(英語のみ)"
 NEGATIVE_PROMPT_OPTION_DESC = "画像生成に使用するネガティブプロンプトを入力してください。(英語のみ)"
+IMAGE_STRENGTH_OPTION_DESC = "画像の強制力を、0.00～1.00の範囲で入力してください。デフォルト値は0.35です。(値が大きいほど、画像に厳密に従います)"
 CFG_SCALE_OPTION_DESC = "プロンプトの強制力を、0.0～35.0の範囲で入力してください。デフォルト値は7です。(値が大きいほど、プロンプトに厳密に従います)"
 CLIP_GUIDANCE_PRESET_OPTION_DESC = "画像生成に使用するガイダンスのプリセットを、選択肢から選んでください。デフォルト値は指定なしです。"
 ASPECT_OPTION_DESC = "生成する画像のサイズを、選択肢から選んでください。デフォルト値は1:1です。"

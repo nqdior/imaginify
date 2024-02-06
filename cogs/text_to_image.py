@@ -105,6 +105,7 @@ class IMAGINE(commands.Cog):
             original_message = interaction.message
             custom_id = int(interaction.data["custom_id"]) - 1
 
+            # BUG: NSFW画像が含まれている場合、indexが正しく指定できずエラーが発生する
             attachment_url = original_message.attachments[custom_id].url
             response = requests.get(attachment_url)
 
