@@ -1,8 +1,6 @@
 import discord
 import requests
 import os, io, base64
-from discord.ui import Button
-from discord.ui import View
 from discord.ext import commands
 from discord.commands import slash_command, Option
 from dotenv import load_dotenv
@@ -77,7 +75,7 @@ class IMAGINE(commands.Cog):
 
             button = discord.ui.Button(label=f"upscale {i+1}", custom_id=f"{i+1}")
             view.add_item(button)
-        
+
         embed = discord.Embed(
                 description=
                     f"**{ctx.author.mention}'s Imagine**\n\n" +
@@ -90,12 +88,13 @@ class IMAGINE(commands.Cog):
                     (f"- sampler: `{sampler}`\n" if sampler else "") +
                     (f"- style_preset: `{style}`\n" if style != "None" else "") +
                     f"- seed:\n{seeds}" +
-                    (f"\n\nNSFWコンテンツが検出されたため、{nsfw_content_count}枚の画像が除外されています。" if nsfw_content_count !=0 else ""),
+                    (f"\n\n") +
+                    (ERROR_NSFW.format(nsfw_content_count) if nsfw_content_count !=0 else ""),
                 color=discord.Color.blurple() 
                 )
             
 
-        embed.set_thumbnail(url=STABILITY_AI_LOGO)
+        embed.set_thumbnail(url=STABILITY_AI_LOGO_URL)
         embed.set_footer(text=f"created by {ctx.author.display_name}", icon_url=ctx.author.avatar.url)
         await ctx.respond(embed=embed, files=files, view=view)
 
@@ -137,17 +136,16 @@ class IMAGINE(commands.Cog):
 
             embed = discord.Embed(
                 description=
-                    f"**{ctx.author.mention}'s UpScale**\n\n" +
-                    f"- model: `{engine_id}`\n",
+                    f"**{ctx.author.mention}'s UpScale**\n",
                 color=discord.Color.blurple() 
             )
 
-            embed.set_thumbnail(url="https://images.squarespace-cdn.com/content/v1/646b4513dbebfb2c0adc2b52/1684751740466-5T0GG85P7CVA04C4SKKB/StabilityAi_Logo_White-19.png")
+            embed.set_thumbnail(url=STABILITY_AI_LOGO_URL)
             embed.set_footer(text=f"created by {ctx.author.display_name}", icon_url=ctx.author.avatar.url)
             await interaction.followup.send(embed=embed, files=files)
 
         for item in view.children:
-            if isinstance(item, Button):
+            if isinstance(item, discord.ui.Button):
                 item.callback = button_callback
 
 def setup(bot):
