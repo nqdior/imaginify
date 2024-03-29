@@ -77,17 +77,21 @@ class IMG2IMG(commands.Cog):
         seeds = f"  - image1: `original image`\n"
         nsfw_content_count = 0
         view = discord.ui.View()
+        valid_image_index = -1 # 有効な画像のインデックスを追跡するための変数を追加
         for i, image in enumerate(response.json().get("artifacts", [])):
             
             if "SUCCESS" != image.get("finishReason") :
                 nsfw_content_count += 1
                 continue
 
-            files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{i+2}.png"))
-            seeds += f"  - image{i+2}: `{image['seed']}`\n"
-
-            button = discord.ui.Button(label=f"upscale {i+2}", custom_id=f"{i+2}")
+            # ファイルを追加する前に、有効な画像のインデックスを更新
+            files.append(discord.File(io.BytesIO(base64.b64decode(image["base64"])), filename=f"image{valid_image_index+1}.png"))
+            seeds += f"  - image{valid_image_index+1}: `{image['seed']}`\n"
+            
+            button = discord.ui.Button(label=f"upscale {valid_image_index+1}", custom_id=f"{valid_image_index}")
             view.add_item(button)
+
+            valid_image_index += 1  # ボタンを追加した後でインデックスをインクリメント
 
         embed = discord.Embed(
                 description=
@@ -115,9 +119,10 @@ class IMG2IMG(commands.Cog):
             await interaction.response.defer()
 
             original_message = interaction.message
-            custom_id = int(interaction.data["custom_id"]) - 1
+            # button_callback内のcustom_idの取得方法を変更
+            custom_id = int(interaction.data["custom_id"])
 
-            # BUG: NSFW画像が含まれている場合、indexが正しく指定できずエラーが発生する
+            # NSFW画像を考慮してインデックスを直接使用
             attachment_url = original_message.attachments[custom_id].url
             response = requests.get(attachment_url)
 
