@@ -6,6 +6,7 @@ from discord.commands import slash_command, Option
 from dotenv import load_dotenv
 from .common.options import model_options, sampler_options, aspect_ratio_options, style_preset_options, clip_guidance_preset_options
 from .common.messages import *
+import json
 
 load_dotenv()
 API_HOST = os.getenv('API_HOST', 'https://api.stability.ai')
@@ -52,11 +53,12 @@ class IMAGINE(commands.Cog):
         }, json=json_data)
 
         if response.status_code != 200:
+            response_dict = json.loads(response.text)
             embed=discord.Embed(
                 color=discord.Color.red(), 
-                description=ERROR_PROMPT_DETECTED,
+                description=f"{response.status_code} {response.reason}：{response_dict['name']}",
             )
-            embed.set_footer(text=FOOTER_PROMPT_ENGLISH)
+            embed.set_footer(text=response_dict['message'])
             await ctx.respond(embed=embed)
             return
         
