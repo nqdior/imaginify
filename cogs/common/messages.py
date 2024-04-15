@@ -14,6 +14,8 @@ MODEL_OPTION_DESC = "画像生成に使用するStable Diffusionモデルの種�
 
 # エラーメッセージ
 ERROR_PROMPT_DETECTED = "不適切なプロンプトが検出されたため、実行を中断しました。"
+ERROR_CONTENT_DETECTED = "不適切なコンテンツが生成されたため、実行を中断しました。"
+ERROR_CONTENT_DETECTED_DETAIL = "NSFWコンテンツが生成されました。プロンプトを変えて再度お試しください。"
 ERROR_SYSTEM = "システムエラーが発生したため、実行を中断しました。"
 ERROR_RETRY = "時間を置いて再度お試しください。"
 ERROR_NSFW = "NSFWコンテンツが検出されたため、{}枚の画像が除外されています。"

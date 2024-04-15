@@ -53,6 +53,7 @@ class IMAGINE(commands.Cog):
         }, json=json_data)
 
         if response.status_code != 200:
+            print(response)
             response_dict = json.loads(response.text)
             embed=discord.Embed(
                 color=discord.Color.red(), 
@@ -82,7 +83,17 @@ class IMAGINE(commands.Cog):
             view.add_item(button)
 
             valid_image_index += 1  # ボタンを追加した後でインデックスをインクリメント
-
+            
+        # すべてNSFWコンテンツだった場合、エラーメッセージを送信して終了
+        if seeds == "":
+            embed=discord.Embed(
+                color=discord.Color.red(), 
+                description=f"{ERROR_CONTENT_DETECTED}",
+            )
+            embed.set_footer(text=ERROR_CONTENT_DETECTED_DETAIL)
+            await ctx.respond(embed=embed)
+            return
+        
         embed = discord.Embed(
                 description=
                     f"**{ctx.author.mention}'s Imagine**\n\n" +
@@ -100,7 +111,6 @@ class IMAGINE(commands.Cog):
                 color=discord.Color.blurple() 
                 )
             
-
         embed.set_thumbnail(url=STABILITY_AI_LOGO_URL)
         embed.set_footer(text=f"created by {ctx.author.display_name}", icon_url=ctx.author.avatar.url)
         await ctx.respond(embed=embed, files=files, view=view)
